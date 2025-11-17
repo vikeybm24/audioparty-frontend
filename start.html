@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Start Streaming</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h2>Start Audio Stream</h2>
+
+    <button class="btn" id="startBtn">Start Streaming</button>
+    <button class="btn red" id="closeBtn" style="display:none;">Close Party</button>
+
+    <h3 id="roomCodeBox" style="display:none;">
+        Share this Party Code:<br>
+        <span id="roomCode"></span>
+    </h3>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/start.js"></script>
+</body>
+</html>

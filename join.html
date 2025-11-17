@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Join Party</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h2>Join Audio Party</h2>
+
+    <input id="codeInput" placeholder="Enter Party Code">
+    <button class="btn" id="joinBtn">Join</button>
+    <button class="btn red" id="disconnectBtn" style="display:none;">Disconnect</button>
+
+    <p id="status"></p>
+
+    <audio id="audioPlayer" autoplay></audio>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/join.js"></script>
+</body>
+</html>
