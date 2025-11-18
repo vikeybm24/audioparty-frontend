@@ -1,6 +1,9 @@
 const socket = window.socket;
 
 let pc;
+let audioCtx = null;      // needed for mute/unmute
+let gainNode = null;      // needed for volume control
+let source = null;
 
 document.getElementById("joinBtn").onclick = () => {
     const code = document.getElementById("codeInput").value.trim();
@@ -10,6 +13,9 @@ document.getElementById("joinBtn").onclick = () => {
 socket.on("join-success", () => {
     document.getElementById("status").textContent = "Connected!";
     document.getElementById("disconnectBtn").style.display = "inline-block";
+
+    // show mute button after connected
+    document.getElementById("muteMobile").style.display = "inline-block";
 });
 
 socket.on("join-failed", () => {
@@ -25,18 +31,21 @@ socket.on("offer", async ({ from, offer }) => {
     });
 
     pc.ontrack = (e) => {
-    const audioCtx = new AudioContext();
-    const source = audioCtx.createMediaStreamSource(e.streams[0]);
-    const gainNode = audioCtx.createGain();
 
-    // Increase this value for more volume boost
-    gainNode.gain.value = 2.0;  // 2x louder
+        // SETUP AudioContext only once
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+            source = audioCtx.createMediaStreamSource(e.streams[0]);
+            gainNode = audioCtx.createGain();
+        }
 
-    source.connect(gainNode).connect(audioCtx.destination);
+        // Volume boost
+        gainNode.gain.value = 2.0; 
 
-    document.getElementById("audioPlayer").srcObject = e.streams[0];
-};
+        source.connect(gainNode).connect(audioCtx.destination);
 
+        document.getElementById("audioPlayer").srcObject = e.streams[0];
+    };
 
     pc.onicecandidate = (e) => {
         if (e.candidate) {
@@ -65,7 +74,6 @@ socket.on("room-closed", () => {
     window.location.href = "index.html";
 });
 
-
 document.getElementById("disconnectBtn").onclick = () => {
     if (pc) {
         pc.close();
@@ -76,4 +84,14 @@ document.getElementById("disconnectBtn").onclick = () => {
 
     alert("Disconnected from party.");
     window.location.href = "index.html";
+};
+
+// ⭐⭐ MUTE / UNMUTE BUTTON ⭐⭐
+document.getElementById("muteMobile").onclick = () => {
+    const audio = document.getElementById("audioPlayer");
+    audio.muted = !audio.muted;
+
+    // update button text
+    document.getElementById("muteMobile").textContent =
+        audio.muted ? "Unmute Mobile" : "Mute Mobile";
 };
