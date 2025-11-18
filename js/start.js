@@ -13,7 +13,7 @@ socket.on("room-created", async (code) => {
 
     document.getElementById("roomCodeBox").style.display = "block";
     document.getElementById("roomCode").textContent = code;
-     document.getElementById("closeBtn").style.display = "inline-block";
+    document.getElementById("closeBtn").style.display = "inline-block";
 
     // Capture system audio
     localStream = await navigator.mediaDevices.getDisplayMedia({
@@ -25,11 +25,44 @@ socket.on("room-created", async (code) => {
         }
     });
 
-    // Remove video, keep only audio
+    // Remove video track
     localStream.getVideoTracks().forEach(t => t.stop());
+
+    // APPLY PLAYBACK MODE HERE (correct place)
+    applyPlaybackMode();
 });
 
+function applyPlaybackMode() {
+    const mode = document.getElementById("playbackMode").value;
 
+    if (!localStream) return;
+
+    if (mode === "pc") {
+        // PC only : don't send audio to mobile
+        localStream.getAudioTracks().forEach(t => t.enabled = false);
+        console.log("Mode: PC only. Audio will NOT go to mobile.");
+    }
+
+    else if (mode === "mobile") {
+        // Mobile only : send audio to mobile but mute local output
+        localStream.getAudioTracks().forEach(t => t.enabled = true);
+
+        const audioEl = new Audio();
+        audioEl.srcObject = localStream;
+        audioEl.muted = true; // Mute on PC
+        audioEl.play();
+
+        console.log("Mode: Mobile only.");
+    }
+
+    else {
+        // both
+        localStream.getAudioTracks().forEach(t => t.enabled = true);
+        console.log("Mode: Both PC + Mobile");
+    }
+}
+
+// Listener joined
 socket.on("listener-joined", async (listenerId) => {
     console.log("New listener:", listenerId);
 
@@ -42,7 +75,7 @@ socket.on("listener-joined", async (listenerId) => {
     // Send audio
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    // ICE candidate → send to listener
+    // ICE Candidate
     pc.onicecandidate = (e) => {
         if (e.candidate) {
             socket.emit("ice-candidate", {
@@ -64,25 +97,21 @@ socket.on("listener-joined", async (listenerId) => {
     listeners[listenerId] = pc;
 });
 
-// Listener sends answer
+// listener answer
 socket.on("answer", async ({ from, answer }) => {
     await listeners[from].setRemoteDescription(answer);
 });
 
-// Listener ICE candidate
 socket.on("ice-candidate", ({ from, candidate }) => {
     listeners[from].addIceCandidate(candidate);
 });
 
+// close party
 document.getElementById("closeBtn").onclick = () => {
-    // Stop audio tracks
     localStream.getTracks().forEach(t => t.stop());
 
-    // Notify server
     socket.emit("close-room", roomCode);
 
     alert("Party closed.");
-
-    // Optional: redirect to home
     window.location.href = "index.html";
 };
