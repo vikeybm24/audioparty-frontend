@@ -25,8 +25,18 @@ socket.on("offer", async ({ from, offer }) => {
     });
 
     pc.ontrack = (e) => {
-        document.getElementById("audioPlayer").srcObject = e.streams[0];
-    };
+    const audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(e.streams[0]);
+    const gainNode = audioCtx.createGain();
+
+    // Increase this value for more volume boost
+    gainNode.gain.value = 2.0;  // 2x louder
+
+    source.connect(gainNode).connect(audioCtx.destination);
+
+    document.getElementById("audioPlayer").srcObject = e.streams[0];
+};
+
 
     pc.onicecandidate = (e) => {
         if (e.candidate) {
