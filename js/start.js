@@ -1,117 +1,161 @@
 const socket = window.socket;
 
-let localStream;
+let localStream = null;
 let listeners = {};
-let roomCode;
+let roomCode = null;
 
-document.getElementById("startBtn").onclick = async () => {
-    socket.emit("create-room");
+const startBtn = document.getElementById("startBtn");
+const closeBtn = document.getElementById("closeBtn");
+const hostTypeEl = document.getElementById("hostType");
+const playbackModeEl = document.getElementById("playbackMode");
+const roomCodeBox = document.getElementById("roomCodeBox");
+const roomCodeSpan = document.getElementById("roomCode");
+const hostInfo = document.getElementById("hostInfo");
+
+startBtn.onclick = () => {
+  socket.emit("create-room");
 };
 
 socket.on("room-created", async (code) => {
-    roomCode = code;
+  roomCode = code;
+  roomCodeBox.style.display = "block";
+  roomCodeSpan.textContent = code;
+  closeBtn.style.display = "inline-block";
 
-    document.getElementById("roomCodeBox").style.display = "block";
-    document.getElementById("roomCode").textContent = code;
-    document.getElementById("closeBtn").style.display = "inline-block";
+  const hostType = hostTypeEl.value; // 'pc' or 'mobile'
+  hostInfo.textContent = `Host Type: ${hostType === 'pc' ? 'PC (system audio)' : 'Mobile (microphone)'} — Waiting for listeners...`;
 
-    // Capture system audio
-    localStream = await navigator.mediaDevices.getDisplayMedia({
+  try {
+    if (hostType === "pc") {
+      // Desktop/PC: capture system audio via getDisplayMedia
+      // Must use video:true so Chrome provides "Share system audio" checkbox
+      localStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
         }
-    });
+      });
 
-    // Remove video track
-    localStream.getVideoTracks().forEach(t => t.stop());
+      // we don't want video locally - stop video tracks
+      localStream.getVideoTracks().forEach(t => t.stop());
+    } else {
+      // Mobile host (microphone only)
+      // Use getUserMedia for microphone capture
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
 
-    // APPLY PLAYBACK MODE HERE (correct place)
+      // Optionally show a small local-preview muted element (not required)
+      // const preview = new Audio();
+      // preview.srcObject = localStream;
+      // preview.muted = true;
+      // preview.play().catch(()=>{});
+    }
+
+    // After stream is ready apply playback mode
     applyPlaybackMode();
+
+    hostInfo.textContent += " — Stream active.";
+  } catch (err) {
+    console.error("Error obtaining media:", err);
+    hostInfo.textContent = "Media permission error: " + (err.message || err);
+    // optionally notify server to remove room if no media
+  }
 });
 
 function applyPlaybackMode() {
-    const mode = document.getElementById("playbackMode").value;
+  if (!localStream) return;
 
-    if (!localStream) return;
+  const mode = playbackModeEl.value; // 'both' | 'mobile' | 'pc'
 
-    if (mode === "pc") {
-        // PC only : don't send audio to mobile
-        localStream.getAudioTracks().forEach(t => t.enabled = false);
-        console.log("Mode: PC only. Audio will NOT go to mobile.");
-    }
+  if (mode === "pc") {
+    // PC only: disable sending to mobile (we will still have local audio play)
+    // We disable tracks so host will not send audio to listeners
+    localStream.getAudioTracks().forEach(t => { t.enabled = false; });
+    hostInfo.textContent = "Playback mode: PC-only (mobile will not receive audio).";
+  } else if (mode === "mobile") {
+    // Mobile only: send audio but mute local playback (if there is local playback)
+    localStream.getAudioTracks().forEach(t => { t.enabled = true; });
 
-    else if (mode === "mobile") {
-        // Mobile only : send audio to mobile but mute local output
-        localStream.getAudioTracks().forEach(t => t.enabled = true);
-
-        const audioEl = new Audio();
-        audioEl.srcObject = localStream;
-        audioEl.muted = true; // Mute on PC
-        audioEl.play();
-
-        console.log("Mode: Mobile only.");
-    }
-
-    else {
-        // both
-        localStream.getAudioTracks().forEach(t => t.enabled = true);
-        console.log("Mode: Both PC + Mobile");
-    }
+    // Mute PC's local output (if any). We'll create a muted local audio element to attach the stream (to keep OS playing unaffected).
+    // If you're on PC host and want local muted, this will silence local playback.
+    try {
+      const localAudio = new Audio();
+      localAudio.srcObject = localStream;
+      localAudio.muted = true;
+      localAudio.play().catch(()=>{});
+    } catch(e){ /* ignore */ }
+    hostInfo.textContent = "Playback mode: Mobile-only (PC muted).";
+  } else {
+    // Both
+    localStream.getAudioTracks().forEach(t => { t.enabled = true; });
+    hostInfo.textContent = "Playback mode: Both PC + Mobile.";
+  }
 }
 
-// Listener joined
+// When a listener joins, create a direct PeerConnection for that listener
 socket.on("listener-joined", async (listenerId) => {
-    console.log("New listener:", listenerId);
+  console.log("New listener:", listenerId);
 
-    const pc = new RTCPeerConnection({
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }
-        ]
-    });
+  if (!localStream) {
+    // no stream ready - tell listener to wait or reject
+    socket.emit("offer-error", { to: listenerId, message: "Host has no media." });
+    return;
+  }
 
-    // Send audio
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  });
 
-    // ICE Candidate
-    pc.onicecandidate = (e) => {
-        if (e.candidate) {
-            socket.emit("ice-candidate", {
-                to: listenerId,
-                candidate: e.candidate
-            });
-        }
-    };
+  // Send audio tracks to the listener
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    // Create offer
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      socket.emit("ice-candidate", { to: listenerId, candidate: e.candidate });
+    }
+  };
 
-    socket.emit("offer", {
-        to: listenerId,
-        offer
-    });
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
 
-    listeners[listenerId] = pc;
+  socket.emit("offer", { to: listenerId, offer });
+  listeners[listenerId] = pc;
 });
 
-// listener answer
 socket.on("answer", async ({ from, answer }) => {
+  if (listeners[from]) {
     await listeners[from].setRemoteDescription(answer);
+  }
 });
 
 socket.on("ice-candidate", ({ from, candidate }) => {
-    listeners[from].addIceCandidate(candidate);
+  if (listeners[from]) {
+    listeners[from].addIceCandidate(candidate).catch(e => console.warn(e));
+  }
 });
 
-// close party
-document.getElementById("closeBtn").onclick = () => {
+// Close party / cleanup
+closeBtn.onclick = () => {
+  if (localStream) {
     localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
 
-    socket.emit("close-room", roomCode);
+  socket.emit("close-room", roomCode);
 
-    alert("Party closed.");
-    window.location.href = "index.html";
+  // Close all peer connections
+  Object.values(listeners).forEach(pc => {
+    try { pc.close(); } catch(e) {}
+  });
+  listeners = {};
+
+  alert("Party closed.");
+  window.location.href = "index.html";
 };
