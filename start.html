@@ -1,30 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Start Streaming</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Start Streaming</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <h2>Start Audio Stream</h2>
+  <h2>Start Audio Stream</h2>
 
+  <label for="hostType">Host Type:</label>
+  <select id="hostType">
+    <option value="pc">PC (System audio - desktop only)</option>
+    <option value="mobile">Mobile (Microphone only)</option>
+  </select>
+
+  <h3>Playback Mode</h3>
+  <select id="playbackMode">
+    <option value="both">Both (PC + Mobile)</option>
+    <option value="mobile">Mobile Only</option>
+    <option value="pc">PC Only</option>
+  </select>
+
+  <div style="margin-top:12px;">
     <button class="btn" id="startBtn">Start Streaming</button>
     <button class="btn red" id="closeBtn" style="display:none;">Close Party</button>
+  </div>
 
-    <h3 id="roomCodeBox" style="display:none;">
-        Share this Party Code:<br>
-        <span id="roomCode"></span>
-    </h3>
-    <br>
-    <h3>Playback Mode</h3>
-<select id="playbackMode">
-    <option value="both">Play on PC + Mobile</option>
-    <option value="mobile">Play on Mobile Only</option>
-    <option value="pc">Play on PC Only</option>
-</select>
+  <h3 id="roomCodeBox" style="display:none; margin-top:12px;">
+    Share this Party Code:<br>
+    <span id="roomCode" style="font-weight:bold; font-size:20px;"></span>
+  </h3>
 
+  <p id="hostInfo" style="color:#333"></p>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="js/socket.js"></script>
-    <script src="js/start.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/start.js"></script>
 </body>
 </html>
