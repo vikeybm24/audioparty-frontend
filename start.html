@@ -1,40 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Start Streaming</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Streaming</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Modern UI CSS --- */
+        :root {
+            --bg-color: #0f172a;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #3b0764 0%, transparent 50%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .party-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Form Controls Styling */
+        .form-group {
+            text-align: left;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .select-field {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            appearance: none; /* Removes default browser dropdown arrow styling */
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem top 50%;
+            background-size: 0.65rem auto;
+        }
+
+        .select-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .select-field option {
+            background-color: var(--secondary);
+            color: var(--text-main);
+        }
+
+        /* Buttons */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.05rem;
+            padding: 1rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #d946ef);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Room Code Display Box */
+        .code-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px dashed var(--primary);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .code-highlight {
+            display: block;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            margin-top: 0.5rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        #hostInfo {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
-  <h2>Start Audio Stream</h2>
 
-  <label for="hostType">Host Type:</label>
-  <select id="hostType">
-    <option value="pc">PC (System audio - desktop only)</option>
-    <option value="mobile">Mobile (Microphone only)</option>
-  </select>
+    <div class="party-card">
+        <h2 class="title">Start Audio Stream</h2>
 
-  <h3>Playback Mode</h3>
-  <select id="playbackMode">
-    <option value="both">Both (PC + Mobile)</option>
-    <option value="mobile">Mobile Only</option>
-    <option value="pc">PC Only</option>
-  </select>
+        <div class="form-group">
+            <label for="hostType">Host Type</label>
+            <select id="hostType" class="select-field">
+                <option value="pc">💻 PC (Desktop Audio)</option>
+                <option value="mobile">📱 Mobile (Microphone)</option>
+            </select>
+        </div>
 
-  <div style="margin-top:12px;">
-    <button class="btn" id="startBtn">Start Streaming</button>
-    <button class="btn red" id="closeBtn" style="display:none;">Close Party</button>
-  </div>
+        <div class="form-group">
+            <label for="playbackMode">Playback Mode</label>
+            <select id="playbackMode" class="select-field">
+                <option value="both">🔊 Both (PC + Mobile)</option>
+                <option value="mobile">📱 Mobile Only</option>
+                <option value="pc">💻 PC Only</option>
+            </select>
+        </div>
 
-  <h3 id="roomCodeBox" style="display:none; margin-top:12px;">
-    Share this Party Code:<br>
-    <span id="roomCode" style="font-weight:bold; font-size:20px;"></span>
-  </h3>
+        <div class="btn-container">
+            <button class="btn btn-primary" id="startBtn">▶️ Start Streaming</button>
+            <button class="btn btn-danger" id="closeBtn" style="display:none;">⏹️ Close Party</button>
+        </div>
 
-  <p id="hostInfo" style="color:#333"></p>
+        <div id="roomCodeBox" class="code-box" style="display:none;">
+            Share this Party Code:<br>
+            <span id="roomCode" class="code-highlight"></span>
+        </div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="js/socket.js"></script>
-  <script src="js/start.js"></script>
+        <p id="hostInfo"></p>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/start.js"></script>
+
 </body>
 </html>
